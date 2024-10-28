@@ -3,50 +3,55 @@ import json
 import time
 import sys
 from nessrest import ness6rest
+
 nessus_dict = {}
 index = 1
 nm_tcp_options = '-Pn -sV -sC'
-nm_udp_options = '-sU -Pn — top-ports 100 -sV -sC'
+nm_udp_options = '-sU -Pn --top-ports 100 -sV -sC'
 nm_scan = nmap.PortScanner()
+
 for ip_scan in scan_dict.keys():
 ip_list = scan_dict[ip_scan].split(‘,’)
 for ip_val in ip_list:
-nessus_dict[index] = {}
-nessus_dict[index][‘name’] = ip_scan
-nessus_dict[index][‘ip’] = ip_val
-try:
-data_tcp = nm_scan.scan(str(ip_val),arguments=nm_tcp_options)
-port_list = []
-for ports in data_tcp[‘scan’][str(ip_val)][‘tcp’].keys():
-if not ports in port_list:
-port_list.append(str(ports))
-except Exception,e:
-pass
-print “Exception: “ + str(e)
-try:
-# print “Starting udp scan for “ + nessus_dict[index][‘ip’]
-data_udp = nm_scan.scan(str(ip_val),arguments=nm_udp_options)
-for ports in data_udp[‘scan’][str(ip_val)][‘udp’].keys():
-if not ports in port_list:
-port_list.append(str(ports))
-except Exception,e:
-pass
-print “Exception: “ + str(e)
-nessus_dict[index][‘ports’] = ‘,’.join(port_list)
-index +=1
+    nessus_dict[index] = {}
+    nessus_dict[index][‘name’] = ip_scan
+    nessus_dict[index][‘ip’] = ip_val
+
+    try:
+       data_tcp = nm_scan.scan(str(ip_val),arguments=nm_tcp_options)
+       port_list = []
+       for ports in data_tcp[‘scan’][str(ip_val)][‘tcp’].keys():
+           if not ports in port_list:
+                   port_list.append(str(ports))
+    except Exception as e:
+        pass
+        print("Exception: " + str(e))
+    try:
+    data_udp = nm_scan.scan(str(ip_val),arguments=nm_udp_options)
+    for ports in data_udp[‘scan’][str(ip_val)][‘udp’].keys():
+        if not ports in port_list:
+                port_list.append(str(ports))
+    except Exception as e:
+        pass
+        print("Exception: " + str(e))
+    nessus_dict[index][‘ports’] = ‘,’.join(port_list)
+    index +=1
+
 print nessus_dict
-scan = ness6rest.Scanner(url=”https://localhost:8834", login="nour", password="nour", insecure=True)
-scan.policy_set(‘policy_name’)
+
+scan = ness6rest.Scanner(url="https://localhost:8834", login="nour", password="nour", insecure=True)
+scan.policy_set('policy_name')
+
 for keys in nessus_dict.keys():
-try:
-scan.policy_limit_ports(ports=nessus_dict[keys][‘ports’])
-scan.scan_add(targets=nessus_dict[keys][‘ip’],name=nessus_dict[keys][‘name’]+nessus_dict[keys][‘ip’])
-scan.scan_run()
-scan._scan_status()
-time.sleep(60)
-scan_data = scan.download_scan(export_format=”csv”)
-file_nessus = ‘final_scan_’+str(time.time())+’.csv’
-scan_file = open(file_nessus,’w’)
-scan_file.write(scan_data)
-except:
-pass
+    try:
+       scan.policy_limit_ports(ports=nessus_dict[keys][‘ports’])
+       scan.scan_add(targets=nessus_dict[keys][‘ip’],name=nessus_dict[keys][‘name’]+nessus_dict[keys][‘ip’])
+       scan.scan_run()
+       scan._scan_status()
+       time.sleep(60)
+       scan_data = scan.download_scan(export_format=”csv”)
+       file_nessus = ‘final_scan_’+str(time.time())+’.csv’
+       scan_file = open(file_nessus,’w’)
+       scan_file.write(scan_data)
+   except:
+      pass
